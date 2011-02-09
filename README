@@ -1,1 +1,6 @@
-HEAL
+Heal is a Haskell Evolutionary Algorithm Library
+
+It implements the traditional GA as well as Prefix Gene Expression Programming
+and Robust Gene Expression Programming. The latter is the subject of the author's masters
+thesis and serves as a reference implementation to disambiguate the explaination that will
+appear in the thesis.

@@ -1,34 +1,40 @@
 module EA(
   ea,
+  ga,
   evaluate,
-  loopM,
-  maxGens
+  maxGens,
+  minFitness,
+  maxFitness
 ) where
 
 import EAMonad
-import Loci(Mutable, mutate)
 import Selection
-import qualified Data.Sequence as S
+import GeneticOperators
 import qualified Data.Traversable as T
 
-ea init eval select recombine gens opt elit pred = let
-  gen p = incgen p >>= recordFitness opt >>= select >>= recombine 
-  gen' p = eval p >>= if elit then elitism opt gen else gen in
-    init >>= loopM pred gen' >>= eval
-loopM :: (p -> EAMonad Bool e) -> (p -> EAMonad p e) -> p -> EAMonad p e
+ea init gen pred = init >>= loopM pred gen' where
+  gen' p = incgen p >>= recordFitness >>= gen
 loopM pred f p = do
   b <- pred p
   if b then return p else f p >>= loopM pred f
 
-maxGens :: Int -> p -> EAMonad Bool e
-maxGens gens _ = do
-  curgen <- getGens
-  return $ gens <= curgen
+ga init eval select recombine elit pred = let
+  gen p = incgen p >>= recordFitness >>= select >>= recombine >>= eval
+  gen' = if elit then elitism gen else gen in
+    ea (init >>= eval) gen' pred
 
-evaluate eval p = do
-  fits <- T.mapM eval p
-  return $ S.zip p fits
+maxGens gens p = do
+  curgen <- getGens p
+  return $! gens <= curgen
 
-recordFitness opt p = do
-  record $ (++"\n") $ show $ bestFit opt p
+minFitness minfit p = return $! minfit >= bestFit p
+maxFitness maxfit p = return $! maxfit <= bestFit p
+
+evaluate eval p = T.mapM eval' p where
+  eval' i = do
+    fit <- eval i
+    return (i, fit)
+
+recordFitness p = do
+  record $! (show $ bestFit p) ++ "\n" 
   return p
