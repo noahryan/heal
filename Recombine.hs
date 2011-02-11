@@ -20,7 +20,8 @@ crossover :: (Pairable f, Tr.Traversable f, Crossable c) =>
 crossover n pc pop = do
   paired <- pairup pop
   crossed <- Tr.mapM (might pc (cross n)) paired
-  return $! unpair crossed
+  return $ unpair crossed
 
-rotation :: (Rotatable r, Tr.Traversable f) => Double -> f (r a) -> EAMonad (f (r a)) e
+rotation :: (Rotatable r, Tr.Traversable f) => 
+  Double -> f (r a) -> EAMonad (f (r a)) e
 rotation pr pop = Tr.mapM (might pr rotate) pop

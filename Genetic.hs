@@ -1,4 +1,4 @@
-module GeneticOperators (
+module Genetic(
   PSet(..),
   pointin,
   pointed,
@@ -6,7 +6,6 @@ module GeneticOperators (
   Mutable(mutate),
   Crossable(cross),
   Rotatable(rotate),
-  Linear(..)
 )
 where
 
@@ -18,11 +17,6 @@ import qualified Data.Sequence as S
 import qualified Data.Foldable as F
 import qualified Data.Traversable as Tr
 
--- Pointed set represented as a list and a distinguished element.
-data PSet a = PSet { point::a, unpoint::[a] } deriving Show
-pointin i = PSet i [i]
-pointed i is = PSet i is
-
 
 class Pairable f where
   pairup :: f a -> EAMonad (f (a,a)) e
@@ -31,17 +25,15 @@ class Pairable f where
 instance Pairable [] where
   pairup as = do
     shuffled <- shuffle as
-    return $ pairify shuffled
+    return $! pairify shuffled
   unpair [] = []
   unpair ((a,b):as) = [a,b] ++ unpair as
 
 instance Pairable S.Seq where
-  pairup s = do
-    s' <- rotate s
-    let half = S.length s `div` 2
-    let firsthalf = S.take half s'
-    let secondhalf = S.drop half s'
-    return $ S.zip firsthalf secondhalf where
+  pairup s = return $! S.zip firsthalf secondhalf where
+    firsthalf = S.take half s
+    secondhalf = S.drop half s
+    half = S.length s `div` 2
   unpair s = fmap fst s S.>< fmap snd s
 
 class Mutable r where
@@ -72,7 +64,11 @@ crossCrossable n (as, bs) = do
 rotateList :: [a] -> EAMonad [a] e
 rotateList ind = do
   rp <- nextInt $ length ind 
-  return $ drop rp ind ++ take rp ind
+  return $! drop rp ind ++ take rp ind
+
+data PSet a = PSet { point::a, unpoint::[a] } deriving Show
+pointin i = PSet i [i]
+pointed i is = PSet i is
 
 instance Functor PSet where
   fmap f (PSet i is) = PSet (f i) (map f is)
@@ -95,7 +91,7 @@ instance Mutable Bool where
 instance Mutable (PSet a) where
   mutate (PSet a as) = do
     a' <- selectFrom as
-    return $ PSet a' as
+    return $! PSet a' as
 
 instance (Mutable a) => Mutable (S.Seq a) where
   mutate = Tr.mapM mutate
@@ -114,21 +110,5 @@ instance Rotatable S.Seq where
   rotate s = do
     let len = S.length s
     rp <- nextInt len
-    return $ S.drop rp s S.>< S.take rp s
---
--- finite linear structures
-class (Tr.Traversable l) => Linear l where
-  first :: l a -> a
-  rest :: l a -> l a
-  count :: l a -> Int
-  empty :: l a -> Bool
-instance Linear [] where
-  first = head
-  rest = tail
-  count = length
-  empty = null
-instance Linear S.Seq where
-  first s = s `S.index` 0
-  rest = S.drop 1
-  count = S.length
-  empty = S.null
+    return $! S.drop rp s S.>< S.take rp s
+

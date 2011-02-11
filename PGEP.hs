@@ -9,19 +9,18 @@ module PGEP(
 where
 
 import EA
-import GeneticOperators 
 import EAMonad
+import Operators
 import Randomly(might)
+import Postfix(postfix)
+import GeneticOperators
 import Selection(elitism, roulette)
 import Recombine(mutation, rotation, crossover)
-import Postfix(postfix)
-import Operators
 import qualified Data.Sequence as S
 import qualified Data.Traversable as Tr
 
 type PChrom a = S.Seq (PSet a)
 type PPop a = S.Seq (PChrom a)
-
 
 pgepEval :: S.Seq (PSet (OP a)) -> Maybe a
 pgepEval = postfix . (fmap point)
@@ -32,7 +31,7 @@ pgeprecomb pm pr pc1 pc2 pop =
 pcross n pc pop = do
   paired <- pairup pop
   crossed <- Tr.mapM (might pc (cross n)) $ paired
-  return $! validate pop $ unpair crossed
+  return $ validate pop $ unpair crossed
 
 pgep ps is gens pm pr pc1 pc2 eval syms = 
   ga (mkSymPop ps is syms)

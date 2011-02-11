@@ -34,12 +34,12 @@ test p = do
 
 might p f a = do
   b <- test p
-  if b then f a else return a 
+  if b then f a else return $ a 
 
 selectFrom :: [a] -> EAMonad a e
-selectFrom !(a:as) = fairSelect 2.0 a as where
-  fairSelect _ !a [] = return a
-  fairSelect !n !a !(a':as) = do
+selectFrom (a:as) = fairSelect 2.0 a as where
+  fairSelect _ a [] = return a
+  fairSelect n a (a':as) = do
     b <- test (1.0/n)
     let n' = n+1.0
     if b then fairSelect n' a' as else fairSelect n' a as
@@ -54,7 +54,7 @@ shuffle [] = return []
 shuffle x = do 
   val <- nextInt $ length x
   rest <- shuffle $ removeNth x val
-  return $! (x !! val):rest
+  return $ (x !! val):rest
 
 removeNth :: [a] -> Int -> [a]
 removeNth [] _ = []

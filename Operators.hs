@@ -28,4 +28,4 @@ validly f p = validate p (f p)
 
 validlyM f p = do
   p' <- f p
-  return $! validate p p' 
+  return $ validate p p' 

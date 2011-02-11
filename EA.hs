@@ -12,29 +12,31 @@ import Selection
 import GeneticOperators
 import qualified Data.Traversable as T
 
+ea :: EAMonad a e -> (a -> EAMonad a e) -> (a -> EAMonad Bool e) -> EAMonad a e
 ea init gen pred = init >>= loopM pred gen' where
-  gen' p = incgen p >>= recordFitness >>= gen
+  gen' p = incgen >> gen p
 loopM pred f p = do
   b <- pred p
   if b then return p else f p >>= loopM pred f
 
 ga init eval select recombine elit pred = let
-  gen p = incgen p >>= recordFitness >>= select >>= recombine >>= eval
+  gen p = recordFitness p >>= select >>= recombine >>= eval
   gen' = if elit then elitism gen else gen in
     ea (init >>= eval) gen' pred
 
 maxGens gens p = do
-  curgen <- getGens p
-  return $! gens <= curgen
+  curgen <- getGens
+  return $ gens <= curgen
 
-minFitness minfit p = return $! minfit >= bestFit p
-maxFitness maxfit p = return $! maxfit <= bestFit p
+minFitness minfit p = return $ minfit >= bestFit p
+maxFitness maxfit p = return $ maxfit <= bestFit p
 
 evaluate eval p = T.mapM eval' p where
   eval' i = do
     fit <- eval i
-    return (i, fit)
+    return $ (i, fit)
 
 recordFitness p = do
-  record $! (show $ bestFit p) ++ "\n" 
-  return p
+  let fit = bestFit p
+  record $! "BestFit:: " ++ show fit ++ "\n"
+  return (fit `seq` p)
