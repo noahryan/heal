@@ -1,59 +1,64 @@
 module RGEP(
   rgepEval,
-  cnds2symbols,
+  cdns2symbols,
   codonLength,
   mkCodonPop,
   rgep,
   rgeprecomb,
   cdn2int
-)
-where
+) where
 
 import Operators(OP)
 import Postfix(postfix)
-import GeneticOperators--(mutate, first, rest, Linear)
 import EA--(ga, evaluate, maxGens)
 import EAMonad
 import Selection--(tournament, elitism, bestInd)
 import Recombine--(mutation, rotation, crossover)
 import Randomly
+import qualified GeneticOperators as G
+import Data.List
+import Control.Monad
+import Prelude 
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
 import qualified Data.Traversable as Tr
 
 rgepEval = postfix
 
-rgeprecomb pm pr pc1 pc2 pop = 
-  Tr.mapM (Tr.mapM (Tr.mapM ((might pm mutate)))) pop >>= rotation pr >>= 
+rgepmut pm pop = Tr.mapM (mutind pm) pop where
+  mutind pm ind = do
+    let len = G.count ind - 1
+    indices <- F.foldlM (\is i -> might pm (i:) is) [] [0..len] 
+    return $! foldl' (\ind' i -> S.adjust not i ind') ind indices
+
+rgeprecomb cs pm pr pc1 pc2 pop = 
+  rgepmut pm pop >>= rotation cs pr >>= 
   crossover 1 pc1 >>= crossover 2 pc2
 
-rgep ps is ops terms pm pr pc1 pc2 eval gens = 
-  ga (mkCodonPop ps is (codonLength ops terms))
-     (evaluate (eval . rgepEval . cnds2symbols ops terms))
+rgep ps is ops terms pm pr pc1 pc2 eval gens = let cs = codonLength ops terms in
+  ga (mkCodonPop ps is cs)
+     (evaluate (eval . rgepEval . cdns2symbols ops terms))
      tournament
-     --(\p->recordBest ops terms p >>= tournament)
-     (rgeprecomb pm pr pc1 pc2)
+     (rgeprecomb cs pm pr pc1 pc2)
      True
      (maxGens gens)
---recordBest ops terms p = do
---  let i = bestInd p
---  record $ ("BestInd: " ++) $ show $ rgepEval $ cnds2symbols ops terms i
---  record "\n"
---  return p
 
-cnds2symbols ops terms cdns = fmap (codon2Op ops terms) cdns
-
-codon2Op ops terms cnd = syms !! (cdn2int $ rest cnd) where
-  syms = if first cnd == True then ops' else terms'
-  ops' = cycle ops
+cdns2symbols :: (G.Linear l) => [OP a] -> [OP a] -> l Bool -> l (OP a)
+cdns2symbols ops terms cdns = trans cdns where
+  trans cdns | G.isEmpty cdns = G.empty
+             | otherwise = G.cons (syms !! cdn2int cdn) $ trans (G.drop cs cdns) where
+               cdn = G.rest (G.take cs cdns)
+               syms = if G.first cdns == True then terms' else ops'
   terms' = cycle terms
+  ops' = cycle ops
+  cs = codonLength ops terms
 
-cdn2int bs = F.sum $! snd $! Tr.mapAccumL acc 1 bs where
+cdn2int bs = F.sum $ snd $ Tr.mapAccumL acc 1 bs where
   acc i b = (2*i, if b then i else 0)
 
---ceil(log2(max(|ops|, |terms|)))
+-- ceil(log2(max(|ops|, |terms|)))
 codonLength :: [a] -> [b] -> Int
 codonLength ops terms = (1+) $ ceiling $ logBase 2 (fromIntegral $ max (length ops) (length terms))
 
-codonPopulation ps is cs = S.replicate ps $ S.replicate is $ S.replicate cs True
-mkCodonPop ps is cs = mutate (codonPopulation ps is cs)
+codonPopulation ps is cs = S.replicate ps $ S.replicate (is*cs) True
+mkCodonPop ps is cs = G.mutate (codonPopulation ps is cs)

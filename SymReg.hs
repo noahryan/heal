@@ -12,8 +12,11 @@ module SymReg (
   mult,
   expon,
   resError
-)
-where
+  --expx,
+  --logx,
+  --cosx,
+  --sinx
+) where
 
 import Operators
 import Selection

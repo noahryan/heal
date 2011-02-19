@@ -5,13 +5,12 @@ module PGEP(
   pgep,
   mkSymbols,
   pgeprecomb
-  )
-where
+) where
 
 import EA
 import EAMonad
 import Operators
-import Randomly(might)
+import Randomly(mightM)
 import Postfix(postfix)
 import GeneticOperators
 import Selection(elitism, roulette)
@@ -19,23 +18,25 @@ import Recombine(mutation, rotation, crossover)
 import qualified Data.Sequence as S
 import qualified Data.Traversable as Tr
 
-type PChrom a = S.Seq (PSet a)
-type PPop a = S.Seq (PChrom a)
 
-pgepEval :: S.Seq (PSet (OP a)) -> Maybe a
-pgepEval = postfix . (fmap point)
+pgepEval = postfix . S.reverse . uncode . (fmap point)
 
+uncode ops = uncode' ops 1 where
+  uncode' _ 0 = S.empty
+  uncode' ops n = cons op $ uncode' (rest ops) (n - 1 + eats op) where
+    op = first ops
+    
 pgeprecomb pm pr pc1 pc2 pop = 
-  validlyM (mutation pm) pop >>= validlyM (rotation pr) >>= 
+  validlyM (mutation pm) pop >>= validlyM (rotation 1 pr) >>= 
   (pcross 1 pc1) >>= (pcross 2 pc2)
 pcross n pc pop = do
   paired <- pairup pop
-  crossed <- Tr.mapM (might pc (cross n)) $ paired
+  crossed <- Tr.mapM (mightM pc (cross n)) $ paired
   return $ validate pop $ unpair crossed
 
 pgep ps is gens pm pr pc1 pc2 eval syms = 
   ga (mkSymPop ps is syms)
-     (evaluate (eval . pgepEval ))
+     (evaluate (eval . pgepEval))
      roulette
      (pgeprecomb pm pr pc1 pc2)
      True

@@ -11,7 +11,7 @@ module EAMonad (
   getGens,
   getEnv,
   putEnv,
-  incgen
+  incGen
 ) where
 
 import Control.Applicative
@@ -64,8 +64,8 @@ record !s = modify (\(e, l, gen) -> (e, l++s, gen))
 randomly :: Rand a -> EAMonad a e
 randomly r = lift r
 
-incgen :: EAMonad () e
-incgen = modify (\(e, l, gen) -> (e, l, succ gen))
+incGen :: EAMonad () e
+incGen = modify (\(e, l, gen) -> (e, l, succ gen))
 
 getGens :: EAMonad Int e
 getGens = do

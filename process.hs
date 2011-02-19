@@ -6,11 +6,12 @@ import Data.List
 gens = 500
 trials = 10
 
+fitness = "BestFit: "
 process s = unlines $ map show $ map (/trials) sums where
   sums = foldr (zipWith (+)) (replicate gens 0) $ toNumbers gens lined
-  lined = filter (not . null) $ lines s
+  lined = map (drop (length fitness)) $ filter (isPrefixOf fitness) $ lines s
 toNumbers :: Int -> [String] -> [[Double]]
-toNumbers n s = map (map read) $ map init $ splitEvery (n+1) s
+toNumbers n s = splitEvery n $ map read s
   
 main = do
   args <- getArgs

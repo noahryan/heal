@@ -16,9 +16,9 @@ instance Show (OP a) where
 instance Eq (OP a) where
   (OP _ _  _ name) == (OP _ _ _ name') = name == name'
 
-valid ind = check 1 $ S.reverse $ fmap (eats . point) ind where
+valid ind = check 1 $ fmap (eats . point) ind where
   check n arrs | n == 0 = True
-               | empty arrs = False
+               | isEmpty arrs = False
                | otherwise = check (n + (first arrs) - 1) (rest arrs)
 pickvalid i i' = if valid i' then i' else i
 

@@ -1,6 +1,5 @@
 module Main(
-  main,
-  testcases
+  main
 ) where
 
 import SymReg
@@ -8,59 +7,54 @@ import PGEP
 import EAMonad
 import EA
 import Selection
-import Loci(point)
-import qualified Data.Foldable as F
+import GeneticOperators(point)
+import Operators
 import Control.Monad.State
 
 exps = 10
 ps = 1000
 is = 100
-gens = 1
+gens = 500
 pm = 0.02
 pr = 0.02
 pc1 = 0.7
 pc2 = 0.7
-opt = Max
 maxFit = 100000.0
 
 ops = [plus, minus, mult, divide]
 terms = [var] ++ constants [1, 2, 3, 5, 7]
 syms = ops ++ terms
 
---f x = (3*((x+1)^3)) + (2*((x+1)^2)) + (x+1)
-f x = (x^3) - (0.3*x^2) - (0.4*x) - (0.6)
+f x = (3*((x+1)^3)) + (2*((x+1)^2)) + (x+1)
+--f x = (x^3) - (0.3*x^2) - (0.4*x) - (0.6)
 --f x = x ^ 4 + x^3 + x^2 + x
 --f x = x^2 + 3*x + 1
 testcases = uniformCases (-10, 10) 21 f
-evalF Nothing = return maxFit
-evalF (Just expr) = return $ sum $ map diff testcases where
-  f = evalExpr expr
-  diff (v, fv) = abs $ fv - f v
-eval ind = evalF $ pgepEval ind
+eval = resError testcases maxFit
 
 scale p = do
-  scl <- get 
-  let genbest = F.minimum (fmap snd p)
-  let p' = fmap (\(a,d) -> (a, scl / (scl+d))) p
-  put $ min scl genbest
-  return p'
+  scl <- getEnv
+  let genbest = bestFit p
+  let scaler = unMin scl
+  let p' = fmap (\(a, (Min d)) -> (a, (scaler / (scaler+d)))) p
+  putEnv $ if scl > genbest then scl else genbest
+  return $! p'
 
-run = ea (mkSymPop ps is (mkSymbols syms))
-         (evaluate eval)
+run = ga (mkSymPop ps is (mkSymbols syms))
+         (evaluate (eval . pgepEval))
          (\p-> scale p >>= roulette)
          (pgeprecomb pm pr pc1 pc2)
-         gens
-         Min
          True
          (maxGens gens)
 
 main = do
   result <- experiment exps ""
-  writeFile "ptest" result
+  writeFile "ptestmany" result
 
 experiment 0 l = return l
 experiment times result = do
-  (p, e, l, g) <- runEAIO run maxFit
-  let (i, f) = best Min p
-  let result' = result ++ l ++ "\n" ++ show (fmap point i) ++ " with fitness: " ++ show f
+  (p, e, l, g) <- runEAIO run (Min maxFit)
+  --let i = unfitness $ best p
+  --let f = fitness $ best p
+  let result' = result ++ l -- ++ "\n" ++ show (fmap point i) ++ " with fitness: " ++ show f
   experiment (times-1) result'

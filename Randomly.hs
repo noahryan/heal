@@ -2,6 +2,7 @@
 module Randomly (
   test,
   might,
+  mightM,
   nextDouble,
   nextInt,
   nextBool,
@@ -33,6 +34,10 @@ test p = do
   return $! p > x
 
 might p f a = do
+  b <- test p
+  return $ if b then f a else a
+
+mightM p f a = do
   b <- test p
   if b then f a else return $ a 
 
